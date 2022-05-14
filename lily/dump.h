@@ -28,7 +28,7 @@ enum class Type {
 };
 
 //e8 ? ? 00 00 48 8b d0 f7 83 ? ? 00 00 00 04 00 00
-inline DWORD UObjectFuncOffset = 0x140;
+inline DWORD UObjectFuncOffset = 0x158;
 
 static auto GetStructMap(Process& process) {
 	std::map<std::wstring, uintptr_t> StructMap;
@@ -271,7 +271,7 @@ static auto GetMemberMap(Process& process, uintptr_t StartAddress) {
 								break;
 							}
 
-							if (MemberMap.find(wString.data()) == MemberMap.end())
+							if (!MemberMap.contains(wString.data()))
 								MemberMap[wString.data()] = { Type::Member, Offset };
 
 							break;
@@ -282,7 +282,7 @@ static auto GetMemberMap(Process& process, uintptr_t StartAddress) {
 							if (std::wstring(wString.data()).find(L"_Key") == std::wstring::npos &&
 								std::wstring(wString.data()) != L"UnderlyingType") {
 
-								if (MemberMap.find(wString.data()) == MemberMap.end())
+								if (!MemberMap.contains(wString.data()))
 									MemberMap[wString.data()] = { Type::Member, 0 };
 							}
 

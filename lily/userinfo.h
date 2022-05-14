@@ -31,14 +31,19 @@ private:
 
 	constexpr static unsigned RankSeason = 17;
 	constexpr static float InvalidateTime = 60.0f * 60.0f;	//1hour
-	constexpr static float WaitTime = 5.0f;
+	constexpr static size_t MaxSyncLimit = 1;
+
+	constexpr static float RetrySyncTime = 0.5f;
+	constexpr static float RetryFailTime = 5.0f;
+	constexpr static float ValidSyncTime = 2.0f;
 
 	enum class Status {
 		Reset,
-		StartSync,
+		NeedSync,
 		StartInfo,
 		WaitSync,
 		WaitInfo,
+		StartSync,
 		Done,
 	};
 
@@ -61,27 +66,35 @@ public:
 	void Invalidate(std::string UserName, bool bKakao) {
 		if (UserName.empty())
 			return;
-		if (UserList.find(UserName) != UserList.end())
-			UserList[UserName].SyncTime = -FLT_MAX;
+
+		if (UserList.contains(UserName)) {
+			switch (UserList[UserName].Code) {
+			case Status::WaitSync:
+			case Status::WaitInfo:
+				return;
+			}
+		}
+
+		UserList[UserName] = { bKakao, Status::StartSync };
 	}
 
 	void AddUser(std::string UserName, bool bKakao) {
 		if (UserName.empty())
 			return;
 
-		if (UserList.find(UserName) != UserList.end()) {
+		if (UserList.contains(UserName)) {
 			auto& User = UserList[UserName];
 			if (User.Code == Status::Done && GetTimeSeconds() > User.SyncTime + InvalidateTime)
-				UserList[UserName] = { bKakao, Status::StartSync };
+				UserList[UserName] = { bKakao, Status::NeedSync };
 			return;
 		}
 
 		UserList[UserName] = { bKakao, Status::StartInfo };
 	}
 
-	void UpdateInfoFromJson(std::string UserName, bool bKakao, std::string JsonString) {
+	bool UpdateInfoFromJson(std::string UserName, bool bKakao, std::string JsonString) {
 		if (UserName.empty())
-			return;
+			return false;
 
 		const unsigned NameHash = CompileTime::StrHash(UserName.c_str());
 		auto Parsed = json::JSON::Load(JsonString);
@@ -93,7 +106,7 @@ public:
 				InfoSteamSquad[NameHash] = {};
 				InfoSteamSquadFPP[NameHash] = {};
 			}
-			return;
+			return false;
 		}
 
 		auto& RankedStats = Parsed["rankedStats"e];
@@ -104,7 +117,24 @@ public:
 			InfoSteamSquad[NameHash] = { RankedStats, "squad"e };
 			InfoSteamSquadFPP[NameHash] = { RankedStats, "squad-fpp"e };
 		}
+
+		return true;
 	}
+
+	std::vector<std::string> GetSyncUserList() const {
+		std::vector<std::string> Result;
+
+		for (auto& i : UserList) {
+			auto& UserName = i.first;
+			auto& Code = i.second.Code;
+			if (Code == Status::WaitSync || Code == Status::StartSync)
+				Result.push_back(UserName);
+		}
+
+		return Result;
+	}
+
+	size_t GetSyncUserNumber() const { return GetSyncUserList().size(); }
 
 	void Update() {
 		float TimeSeconds = GetTimeSeconds();
@@ -126,6 +156,11 @@ public:
 			case Status::Reset:
 			{
 				User = { User.bKakao, Status::StartInfo, 0.0f, 0.0f };
+				break;
+			}
+			case Status::NeedSync:
+			{
+				User.Code = GetSyncUserNumber() < MaxSyncLimit ? Status::StartSync : Status::Done;
 				break;
 			}
 			case Status::StartSync:
@@ -152,18 +187,25 @@ public:
 					download.RemoveData(SyncUrl);
 					std::string JsonString(JsonData.begin(), JsonData.end());
 					auto Parsed = json::JSON::Load(JsonString);
-					if (Parsed.hasKey("retryAfter"e)) {
-						User.WaitUntil = TimeSeconds + WaitTime;
+
+					if (Parsed.hasKey("accountId"e)) {
+						User.SyncTime = TimeSeconds;
+						User.Code = Status::StartInfo;
+					}
+					else if (Parsed.hasKey("retryAfter"e)) {
+						User.WaitUntil = TimeSeconds + RetrySyncTime;
 						User.Code = Status::StartSync;
-						break;
+					}
+					else if (Parsed.hasKey("error"e)) {
+						const bool IsBusy = Parsed["error"e].ToString() == (std::string)"busy"e;
+						User.WaitUntil = TimeSeconds + IsBusy ? RetrySyncTime : RetryFailTime;
+						User.Code = IsBusy ? Status::StartSync : Status::Reset;
 					}
 
-					User.SyncTime = TimeSeconds;
-					User.Code = Status::StartInfo;
 					break;
 				}
 				case DownloadStatus::Failed:
-					User.WaitUntil = TimeSeconds + WaitTime;
+					User.WaitUntil = TimeSeconds + RetryFailTime;
 					User.Code = Status::Reset;
 					break;
 				default:
@@ -183,12 +225,13 @@ public:
 					std::vector<uint8_t> JsonData = download.GetData(InfoUrl);
 					download.RemoveData(InfoUrl);
 					std::string JsonString(JsonData.begin(), JsonData.end());
-					UpdateInfoFromJson(UserName, User.bKakao, JsonString);
+					if (UpdateInfoFromJson(UserName, User.bKakao, JsonString))
+						User.WaitUntil = TimeSeconds + ValidSyncTime;
 					User.Code = Status::Done;
 					break;
 				}
 				case DownloadStatus::Failed:
-					User.WaitUntil = TimeSeconds + WaitTime;
+					User.WaitUntil = TimeSeconds + RetryFailTime;
 					User.Code = Status::Reset;
 					break;
 				default:

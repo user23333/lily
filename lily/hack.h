@@ -217,21 +217,21 @@ public:
 	}
 
 	void DrawString(const FVector& pos, const std::string Text, ImColor Color, bool bShowAlways, float Size = FONTSIZE) const {
-		DrawString(pos, Text.c_str(), Color, bShowAlways);
+		DrawString(pos, Text.c_str(), Color, bShowAlways, Size);
 	}
 
 	void DrawFPS(float FPS, ImColor Color) const {
 		auto Output = std::format((const char*)"FPS : {}"e, (unsigned)FPS);
-		DrawString({ render.Width * 0.6f, 0.0f , 0.0f }, Output, Color, Hack::FONTSIZE_SMALL);
+		DrawString({ render.Width * 0.6f, 0.0f , 0.0f }, Output, Color, true, Hack::FONTSIZE_SMALL);
 	}
 
 	void DrawEnemiesFocusingMe(const char* szPlayers, ImColor Color) const {
-		DrawString({ render.Width * 0.5f, 0.0f , 0.0f }, szPlayers, Color, Hack::FONTSIZE_NORMAL);
+		DrawString({ render.Width * 0.5f, 0.0f , 0.0f }, szPlayers, Color, true, Hack::FONTSIZE_NORMAL);
 	}
 
 	void DrawSpectatedCount(unsigned SpectatedCount, ImColor Color) const {
 		auto Output = std::format((const char*)"Spectators : {}"e, SpectatedCount);
-		DrawString({ render.Width * 0.4f, 0.0f , 0.0f }, Output, Color, Hack::FONTSIZE_SMALL);
+		DrawString({ render.Width * 0.4f, 0.0f , 0.0f }, Output, Color, true, Hack::FONTSIZE_SMALL);
 	}
 
 	float GetTextHeight(const char* szText, float FontSize = FONTSIZE) const {

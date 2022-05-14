@@ -151,7 +151,7 @@ static ItemInfo GetItemInfo(unsigned Hash) {
 		//DMR
 		HASH_CASE("Item_Weapon_Mk14_C"h, { "Mk14"e, 4 });
 		HASH_CASE("Item_Weapon_FNFal_C"h, { "SLR"e, 4 });
-		HASH_CASE("Item_Weapon_Mk12_C"h, { "Mk12"e, 3 });
+		HASH_CASE("Item_Weapon_Mk12_C"h, { "Mk12"e, 4 });
 		HASH_CASE("Item_Weapon_SKS_C"h, { "SKS"e, 3 });
 		HASH_CASE("Item_Weapon_Mads_QBU88_C"h, { "QBU"e, 3 });
 		HASH_CASE("Item_Weapon_QBU88_C"h, { "QBU"e, 3 });
