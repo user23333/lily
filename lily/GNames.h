@@ -8,8 +8,8 @@ class TNameEntryArray
 public:
 	static constexpr size_t NAME_SIZE = 0x200;
 private:
-	static constexpr uintptr_t ADDRESS_GNAMES = 0x9039868;
-	static constexpr uint32_t ElementsPerChunk = 0x412C;
+	static constexpr uintptr_t ADDRESS_GNAMES = 0x90E0888;
+	static constexpr uint32_t ElementsPerChunk = 0x3E3C;
 
 	//NumElements can be increased when name added to list
 	//Don't use this for check index range -> "if(ID.ComparisonIndex >= NumElements)"

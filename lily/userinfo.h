@@ -3,25 +3,29 @@
 #include "common/json.hpp"
 
 struct tUserInfo {
-	bool bValid = false;
 	bool bExist = false;
 	unsigned rankPoint = 0;
 	float Damage = 0.0f;
 
 	tUserInfo() {}
 	tUserInfo(json::JSON& rankedStats, std::string Key) {
-		bValid = true;
 		if (!rankedStats.hasKey(Key))
 			return;
+
 		bExist = true;
 		rankPoint = rankedStats[Key]["currentRankPoint"e].ToInt();
 
-		float TotalDamage =
-			rankedStats[Key]["damageDealt"e].JSONType() == json::JSON::Class::Floating ?
-			(float)rankedStats[Key]["damageDealt"e].ToFloat() :
-			(float)rankedStats[Key]["damageDealt"e].ToInt();
-		int RoundsPlayed = rankedStats[Key]["roundsPlayed"e].ToInt();
-		Damage = RoundsPlayed ? TotalDamage / RoundsPlayed : 0;
+		const int RoundsPlayed = rankedStats[Key]["roundsPlayed"e].ToInt();
+		if (!RoundsPlayed)
+			return;
+
+		auto& DamageDealt = rankedStats[Key]["damageDealt"e];
+		const float TotalDamage =
+			DamageDealt.JSONType() == json::JSON::Class::Floating ?
+			(float)DamageDealt.ToFloat() :
+			(float)DamageDealt.ToInt();
+
+		Damage = TotalDamage / RoundsPlayed;
 	}
 };
 
@@ -33,9 +37,8 @@ private:
 	constexpr static float InvalidateTime = 60.0f * 60.0f;	//1hour
 	constexpr static size_t MaxSyncLimit = 1;
 
-	constexpr static float RetrySyncTime = 0.5f;
+	constexpr static float RetrySyncTime = 1.0f;
 	constexpr static float RetryFailTime = 5.0f;
-	constexpr static float ValidSyncTime = 2.0f;
 
 	enum class Status {
 		Reset,
@@ -92,24 +95,17 @@ public:
 		UserList[UserName] = { bKakao, Status::StartInfo };
 	}
 
-	bool UpdateInfoFromJson(std::string UserName, bool bKakao, std::string JsonString) {
+	void UpdateInfoFromJson(std::string UserName, bool bKakao, std::string JsonString) {
 		if (UserName.empty())
-			return false;
+			return;
 
-		const unsigned NameHash = CompileTime::StrHash(UserName.c_str());
 		auto Parsed = json::JSON::Load(JsonString);
-		if (!Parsed.hasKey("rankedStats"e)) {
-			if (bKakao)
-				InfoKakaoSquad[NameHash] = {};
-			else {
-				InfoSteamSolo[NameHash] = {};
-				InfoSteamSquad[NameHash] = {};
-				InfoSteamSquadFPP[NameHash] = {};
-			}
-			return false;
-		}
+		if (!Parsed.hasKey("rankedStats"e))
+			return;
 
 		auto& RankedStats = Parsed["rankedStats"e];
+		const unsigned NameHash = CompileTime::StrHash(UserName);
+
 		if (bKakao)
 			InfoKakaoSquad[NameHash] = { RankedStats, "squad"e };
 		else {
@@ -118,7 +114,7 @@ public:
 			InfoSteamSquadFPP[NameHash] = { RankedStats, "squad-fpp"e };
 		}
 
-		return true;
+		return;
 	}
 
 	std::vector<std::string> GetSyncUserList() const {
@@ -225,8 +221,7 @@ public:
 					std::vector<uint8_t> JsonData = download.GetData(InfoUrl);
 					download.RemoveData(InfoUrl);
 					std::string JsonString(JsonData.begin(), JsonData.end());
-					if (UpdateInfoFromJson(UserName, User.bKakao, JsonString))
-						User.WaitUntil = TimeSeconds + ValidSyncTime;
+					UpdateInfoFromJson(UserName, User.bKakao, JsonString);
 					User.Code = Status::Done;
 					break;
 				}

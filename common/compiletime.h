@@ -40,6 +40,11 @@ public:
 		return Hash(Str, StrLen(Str) + 1);
 	}
 
+	template<class Type>
+	constexpr static unsigned StrHash(std::basic_string<Type> Str) {
+		return StrHash(Str.c_str());
+	}
+
 	consteval static unsigned Rand(unsigned Count, unsigned Seed) {
 		for (unsigned i = 0; i < Count; i++)
 			Rand(Seed);

@@ -32,14 +32,14 @@ void Hack::Loop() {
 
 	//41 0f ? ? 73 ? f3 0f 10 ? ? ? ? ? f3 0f 11
 	//first result
-	constexpr uintptr_t HookBaseAddress = 0x8D2CBA;
+	constexpr uintptr_t HookBaseAddress = 0x4AF232;
 	const uintptr_t AimHookAddressVA = pubg.GetBaseAddress() + HookBaseAddress;
 	const PhysicalAddress AimHookAddressPA = dbvm.GetPhysicalAddress(AimHookAddressVA, mapCR3);
 	verify(AimHookAddressPA);
 	dbvm.CloakActivate(AimHookAddressPA);
 
 	//e8 ? ? ? ? f2 0f 10 00 f2 0f ? ? ? ? ? 00 00 8b 40 08 89 ? ? ? ? 00 00 48
-	constexpr uintptr_t GunLocScopeHookBaseAddress = 0x8D1F26;
+	constexpr uintptr_t GunLocScopeHookBaseAddress = 0x4AE113;
 	const uintptr_t GunLocScopeHookAddressVA = pubg.GetBaseAddress() + GunLocScopeHookBaseAddress;
 	const PhysicalAddress GunLocScopeHookAddressPA1 = dbvm.GetPhysicalAddress(GunLocScopeHookAddressVA, mapCR3);
 	const PhysicalAddress GunLocScopeHookAddressPA2 = dbvm.GetPhysicalAddress(GunLocScopeHookAddressVA + 0xC, mapCR3);
@@ -49,7 +49,7 @@ void Hack::Loop() {
 	dbvm.CloakActivate(GunLocScopeHookAddressPA2);
 
 	//74 ? 48 8d ? ? ? ? 00 00 e8 ? ? ? ? eb ? 48 8d ? ? ? ? 00 00 e8 ? ? ? ? f2 0f 10 00 f2 0f
-	constexpr uintptr_t GunLocNoScopeHookBaseAddress = 0x8D1B05;
+	constexpr uintptr_t GunLocNoScopeHookBaseAddress = 0x4ADA5D;
 	const uintptr_t GunLocNoScopeHookAddressVA = pubg.GetBaseAddress() + GunLocNoScopeHookBaseAddress;
 	const PhysicalAddress GunLocNoScopeHookAddressPA1 = dbvm.GetPhysicalAddress(GunLocNoScopeHookAddressVA, mapCR3);
 	const PhysicalAddress GunLocNoScopeHookAddressPA2 = dbvm.GetPhysicalAddress(GunLocNoScopeHookAddressVA + 0xC, mapCR3);
@@ -60,7 +60,7 @@ void Hack::Loop() {
 
 	//f6 84 ? ? ? ? ? 01 74 ? f3 0f 10
 	//first result
-	constexpr uintptr_t GunLocNearWallHookBaseAddress = 0x8D3781;
+	constexpr uintptr_t GunLocNearWallHookBaseAddress = 0x4B01E8;
 	const uintptr_t GunLocNearWallHookAddressVA = pubg.GetBaseAddress() + GunLocNearWallHookBaseAddress;
 	const PhysicalAddress GunLocNearWallHookAddressPA = dbvm.GetPhysicalAddress(GunLocNearWallHookAddressVA, mapCR3);
 	verify(GunLocNearWallHookAddressPA);
@@ -1043,19 +1043,22 @@ void Hack::Loop() {
 
 						UserInfo.AddUser(Info.PlayerName, ESP_PlayerSetting.bKakao);
 
-						const unsigned NameHash = CompileTime::StrHash(Info.PlayerName.c_str());
-						if (UserInfoMap.contains(NameHash)) {
-							unsigned factor = bShortNick ? 100 : 1;
+						const std::string InfoStr = [&]() -> std::string {
+							const unsigned NameHash = CompileTime::StrHash(Info.PlayerName);
+							if (!UserInfoMap.contains(NameHash))
+								return "?"e;
+
 							auto& UserInfo = UserInfoMap[NameHash];
-							Line += (std::string)"("e;
-							Line +=
-								!UserInfo.bValid ? "?"e :
-								!UserInfo.bExist ? "0"e :
-								std::to_string(unsigned(UserInfo.rankPoint / factor)) +
-								(std::string)" "e +
-								std::to_string(unsigned(UserInfo.Damage / factor));
-							Line += (std::string)")"e;
-						}
+							if (!UserInfo.bExist)
+								return "0"e;
+
+							const unsigned Factor = bShortNick ? 100 : 1;
+							const unsigned RankPoint = unsigned(UserInfo.rankPoint / Factor);
+							const unsigned Damage = unsigned(UserInfo.Damage / Factor);
+							return std::to_string(RankPoint) + (std::string)" "e + std::to_string(Damage);
+						}();
+
+						Line += std::string("("e) + InfoStr + std::string(")"e);
 					}
 
 					if (!Line.empty()) {
@@ -1156,7 +1159,7 @@ void Hack::Loop() {
 					if (ActorName.empty())
 						return false;
 
-					ActorNameHash = CompileTime::StrHash(ActorName.c_str());
+					ActorNameHash = CompileTime::StrHash(ActorName);
 					bAircraftCarePackage = (ActorName.substr(0, sizeof("AircraftCarePackage"e) - 1) == (std::string)"AircraftCarePackage"e);
 
 					if (bDebug) {
@@ -1403,7 +1406,7 @@ void Hack::Loop() {
 					return;
 
 				const std::string& Name = ClosestTargetInfo.PlayerName;
-				const unsigned NameHash = CompileTime::StrHash(Name.c_str());
+				const unsigned NameHash = CompileTime::StrHash(Name);
 
 				if (Name.empty())
 					return;
@@ -1565,7 +1568,7 @@ void Hack::Loop() {
 						if (!MyInfo.IsScoping)
 							return true;
 
-						switch (CompileTime::StrHash(MyInfo.WeaponName.c_str())) {
+						switch (CompileTime::StrHash(MyInfo.WeaponName)) {
 						case "R45"h:
 						case "Deagle"h:
 						case "R1895"h:

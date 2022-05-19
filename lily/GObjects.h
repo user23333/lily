@@ -22,20 +22,20 @@ public:
 
 	FName GetFName() const {
 		__int64 a1 = (__int64)this;
-		unsigned int v1;
+		int v1;
 		int v2;
 		int v3;
-		__int64 v5;
-		__int64 v73;
+		int v4;
+		__int64 v71;
 
-		v1 = *(_DWORD*)(a1 + 0x34) ^ 0x3F608E17;
-		LODWORD(v5) = __ROL4__(*(_DWORD*)(a1 + 0x30) ^ 0x2C115BA0, 9);
-		v2 = int(v5 ^ ((_DWORD)v5 << 0x10) ^ 0xB1778E17);
-		LODWORD(v73) = v2;
-		v3 = __ROR4__(v1, 0xF);
-		HIDWORD(v73) = v3 ^ (v3 << 0x10) ^ 0x77B15BA0;
+		v1 = *(_DWORD*)(a1 + 0x30) ^ 0x39F1F469;
+		v2 = __ROR4__(*(_DWORD*)(a1 + 0x2C) ^ 0x472BDFE6, 1);
+		v3 = v2 ^ (v2 << 0x10) ^ 0xCD98F469;
+		LODWORD(v71) = v3;
+		v4 = __ROL4__(v1, 7);
+		HIDWORD(v71) = v4 ^ (v4 << 0x10) ^ 0x98CDDFE6;
 
-		return *(FName*)&v73;
+		return *(FName*)&v71;
 	}
 
 	//DWORD GetIndex() {
